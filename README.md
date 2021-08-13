@@ -11,7 +11,7 @@ You are expected to have downloaded the dataset from G-Drive and have the `trans
 
 ## R dependencies
 
-The indexers are written in R. To run them you should have R version 4.0+ installed.
+The indexers are written in R. To run them you should have [R version 4.0+](https://www.r-project.org/) installed.
 
 This code will install required R libraries.
 

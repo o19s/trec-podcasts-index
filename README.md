@@ -2,7 +2,12 @@
 
 ## Source data
 
-Spotify provided 100k Podcasts with metadata (`podcast_summary` index) and transcripts (`podcasts_transcripts` index). In the `podcast_summary` index, each document is a episode, with fields for Show Title, Show Description, Episode Title and Episode Description. In the `podcasts_transcripts` index each document is a two minute segment's transcript, with fields
+Spotify provided 100k Podcasts with metadata (`podcast_summary` index) and transcripts (`podcasts_transcripts` index). In the `podcast_summary` index, each document is a episode, with fields for Show Title, Show Description, Episode Title and Episode Description. In the `podcasts_transcripts` index each document is a two minute segment's transcript, with fields TBD.
+
+
+### data/ directory
+
+You are expected to have downloaded the dataset from G-Drive and have the `transcripts/` directory unzipped sitting under `data/`. You should also have the `metadata.tsv` (also on G-Drive) sitting under `data/`.
 
 ## R dependencies
 

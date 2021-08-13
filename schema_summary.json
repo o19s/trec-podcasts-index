@@ -1,0 +1,65 @@
+{
+    "mappings": {
+        "properties": {
+            "show_name": {
+                "type": "text",
+                "analyzer": "trec",
+                "fields": {
+                    "keyword": {
+                        "type": "keyword"
+                    }
+                }
+            },
+            "show_description": {
+                "type": "text",
+                "analyzer": "trec"
+            },
+            "publisher": {
+                "type": "keyword"
+            },
+            "episode_name": {
+                "type": "text",
+                "analyzer": "trec",
+                "fields": {
+                    "keyword": {
+                        "type": "keyword"
+                    }
+                }
+            },
+            "episode_description": {
+                "type": "text",
+                "analyzer": "trec"
+            },
+            "episode_duration": {
+                "type": "float"
+            },
+            "show_filename_prefix": {
+                "type": "keyword"
+            },
+            "episode_filename_prefix": {
+                "type": "keyword"
+            },
+            "startTime": {
+                "type": "float"
+            },
+            "endTime": {
+                "type": "float"
+            },
+            "text": {
+                "type": "text",
+                "analyzer": "trec"
+            }
+        }
+    },
+    "settings": {
+        "analysis": {
+            "analyzer": {
+                "trec": {
+                    "type" : "custom",
+                    "tokenizer": "standard",
+                    "char_filter": ["html_strip"]
+                }
+            }
+        }
+    }   
+}

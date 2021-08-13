@@ -7,7 +7,7 @@ Spotify provided 100k Podcasts with metadata (`podcast_summary` index) and trans
 
 ### data/ directory
 
-You are expected to have downloaded the dataset from G-Drive and have the `transcripts/` directory unzipped sitting under `data/`. You should also have the `metadata.tsv` (also on G-Drive) sitting under `data/`.
+You are expected to have downloaded the [dataset from G-Drive](https://drive.google.com/drive/u/0/folders/1P6COi4AL3aBgNOrjj80FP4V8m_F-5sk0) (requires OSC account) and have the `transcripts/` directory unzipped sitting under `data/`. You should also have the `metadata.tsv` (also on G-Drive) sitting under `data/`.
 
 ## R dependencies
 

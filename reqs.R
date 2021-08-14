@@ -10,7 +10,11 @@ if (!require(magrittr)) {
 if (!require(tidyverse)) {
   install.packages('tidyverse')
 }
+if (!require(XML)) {
+  install.packages('XML')
+}
 
+library(XML)
 library(magrittr)
 library(jsonlite)
 library(elastic)

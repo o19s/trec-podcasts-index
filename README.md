@@ -7,11 +7,43 @@ Spotify provided 100k Podcasts with metadata (`podcast_summary` index) and trans
 
 ### data/ directory
 
-You are expected to have downloaded the [dataset from G-Drive](https://drive.google.com/drive/u/0/folders/1P6COi4AL3aBgNOrjj80FP4V8m_F-5sk0) (requires OSC account) and have the `transcripts/` directory unzipped sitting under `data/`. You should also have the `metadata.tsv` (also on G-Drive) sitting under `data/`.
+You are expected to have downloaded the [data files from G-Drive](https://drive.google.com/drive/u/0/folders/1P6COi4AL3aBgNOrjj80FP4V8m_F-5sk0) (requires OSC account) and have this directory structure:
+
+```
+data/
+├── metadata.tsv
+├── podcasts_2020_topics_test.xml
+├── podcasts_2020_topics_train.xml
+├── podcasts_2021_topics_test.xml
+├── qrels.R
+├── qrels.csv
+├── topics.R
+├── topics.csv
+└── transcripts
+    ├── 0
+    ├── 1
+    ├── 2
+    ├── 3
+    ├── 4
+    ├── 5
+    ├── 6
+    └── 7
+```
+
+Items denoted with `###` are from TREC and must be downloaded from G-Drive.
+
+The R scripts generate a similarly named CSV file to make data frames readily available. Run:
+
+```
+Rscript qrels.R
+```
+
+To generate `qrels.csv` once the required TREC files are downloaded.
+
 
 ## R dependencies
 
-The indexers are written in R. To run them you should have [R version 4.0+](https://www.r-project.org/) installed.
+The indexers and data readers are written in R. To run them you should have [R version 4.0+](https://www.r-project.org/) installed.
 
 This code will install required R libraries.
 

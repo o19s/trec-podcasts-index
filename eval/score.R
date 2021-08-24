@@ -12,18 +12,15 @@ con <- connect()
 # Some more functions -----------------------------------------------------
 # TODO: move elsewhere
 
-get_query <- function(topic) {
-  topics[topics$topic == topic, 'query']
-}
-
 get_query(2)
 
+# this is where to write new DSL
 get_search <- function(topic, ...) {
   
   query <- get_query(topic)
   
   query_req <- list(
-    "size" = 30,
+    "size" = 50,
     "_source" = list(
       "episode_filename_prefix",
       "episode_name",
@@ -32,7 +29,8 @@ get_search <- function(topic, ...) {
     "query" = list(
       "combined_fields" = list(
         "fields" = list("episode_description", "episode_name"),
-        "query" = query
+        "query" = query,
+        "minimum_should_match" = "50%"
       )
     )
   )
@@ -40,7 +38,7 @@ get_search <- function(topic, ...) {
   Search(con, "podcasts_summary", body = query_req)
 }
   
-res <- get_search(2)
+res <- get_search(50)
 res
 
 get_ids <- function(res, topic) {
@@ -49,7 +47,7 @@ get_ids <- function(res, topic) {
   } else {
     res[['hits']][['hits']] %>% 
       map_chr(~ .[['_source']][['episode_filename_prefix']]) %>% 
-      paste0("spotify:episode:", .) %>% 
+      paste0("spotify:episode:", .) %>% # this needs to really match down to the segment level
       data.frame(topic = topic, id = ., result = T)
   }
 }
@@ -86,11 +84,32 @@ ids %>% score_ids(topic_num)
 
 scores <- list()
 for (t in unique(qrels$topic)) {
-  print(t)
   scores[[t]] <- get_search(t) %>% 
     get_ids(t) %>% 
-    score_ids()
+    score_ids() %>% 
+    data.frame(topic = t, score = .)
 }
+
+length(scores)
+length(unlist(scores))
+
+hist(unlist(scores), main = "noMM")
+
+dat_scores <- bind_rows(scores) %>% 
+  inner_join(topics)
+
+library(ggbeeswarm)
+p <- ggplot(data = dat_scores, aes(x = "1", y =score, color = type, label = topic, query = query, group = 1)) +
+  geom_quasirandom() +
+  stat_summary(geom = "crossbar", fun.data = mean_cl_boot) +
+  labs(x = "All topics", y = "nDCG@10", title = "no MM")
+
+plotly::ggplotly(p)
+  
+
+# figure out why some scores are NULL and being dropped
+null_topics <- scores %>% map_lgl(is.null) %>% which()
+
 
 
 # looking at qrel data at large

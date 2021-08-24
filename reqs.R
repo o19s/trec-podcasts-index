@@ -13,8 +13,16 @@ if (!require(tidyverse)) {
 if (!require(XML)) {
   install.packages('XML')
 }
+if (!require(Hmisc)) {
+  install.packages('Hmisc')
+}
+if (!require(plotly)) {
+  install.packages('plotly')
+}
 
 library(XML)
+library(Hmisc)
+library(plotly)
 library(magrittr)
 library(jsonlite)
 library(elastic)

@@ -19,6 +19,9 @@ if (!require(Hmisc)) {
 if (!require(plotly)) {
   install.packages('plotly')
 }
+if (!require(ggbeeswarm)) {
+  install.packages('ggbeeswarm')
+}
 
 library(XML)
 library(Hmisc)

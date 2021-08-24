@@ -13,4 +13,5 @@ read_in <- function(x) {
 }
 
 map_df(topics, read_in) %>% 
-  write.csv(file = "data/topics.csv")
+  rename(topic = num) %>% 
+  write.csv(file = "data/topics.csv", row.names = F)

@@ -6,4 +6,6 @@ bind_rows(
   read.table("https://trec.nist.gov/data/podcast/podcasts_2020_test.qrels",
              sep = " ")
 ) %>% 
-  write.csv("data/qrels.csv")
+  setNames(c("topic", "drop", "id", "grade")) %>% 
+  select(-drop) %>% 
+  write.csv("data/qrels.csv", row.names = F)

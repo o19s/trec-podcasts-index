@@ -38,7 +38,7 @@ get_search <- function(topic, ...) {
   Search(con, "podcasts_summary", body = query_req)
 }
   
-res <- get_search(50)
+res <- get_search(2)
 res
 
 get_ids <- function(res, topic) {
@@ -53,6 +53,7 @@ get_ids <- function(res, topic) {
 }
 
 ids <- get_ids(res, 2)
+ids
 
 score_ids <- function(ids, topic) {
   
@@ -75,12 +76,13 @@ score_ids <- function(ids, topic) {
 # Wrangle sandbox ---------------------------------------------------------
 
 # exploring scoring and our baseline ranking
-topic_num <- 8
+topic_num <- 2
 get_query(topic_num)
 ids <- get_search(topic_num) %>% 
   get_ids(topic_num)
 
 ids %>% score_ids(topic_num)
+ids
 
 scores <- list()
 for (t in unique(qrels$topic)) {
@@ -90,10 +92,9 @@ for (t in unique(qrels$topic)) {
     data.frame(topic = t, score = .)
 }
 
-length(scores)
-length(unlist(scores))
-
-hist(unlist(scores), main = "noMM")
+# figure out why some scores are NULL and being dropped
+null_topics <- scores %>% map_lgl(is.null) %>% which()
+scores = scores[-null_topics]
 
 dat_scores <- bind_rows(scores) %>% 
   inner_join(topics)
@@ -101,24 +102,7 @@ dat_scores <- bind_rows(scores) %>%
 library(ggbeeswarm)
 p <- ggplot(data = dat_scores, aes(x = "1", y =score, color = type, label = topic, query = query, group = 1)) +
   geom_quasirandom() +
-  stat_summary(geom = "crossbar", fun.data = mean_cl_boot) +
+  stat_summary(geom = "crossbar", fun.data = mean_cl_boot, aes(color="Average")) +
   labs(x = "All topics", y = "nDCG@10", title = "no MM")
 
 plotly::ggplotly(p)
-  
-
-# figure out why some scores are NULL and being dropped
-null_topics <- scores %>% map_lgl(is.null) %>% which()
-
-
-
-# looking at qrel data at large
-qrels[qrels$topic == topic_num,] %>% 
-  mutate(id = gsub(".*\\:", "", id)) %>% arrange(desc(grade)) %>% head()
-  separate(id, c("episode", "sec"), sep = "_") %>% 
-  remove_rownames() %>% 
-  group_by(episode) %>% 
-  summarise(avg_grade = mean(grade),
-            n = n()) %>% 
-  arrange(desc(avg_grade)) %>% 
-  View()

@@ -6,7 +6,7 @@ library(tidyverse)
 con <- connect()
 
 # res <- topics$query[topic_num] %>% 
-#   Search(con, "podcasts_summary", q = .)
+#   Search(con, "podcasts", q = .)
 
 
 # Some more functions -----------------------------------------------------
@@ -35,7 +35,7 @@ get_search <- function(topic, ...) {
     )
   )
   
-  Search(con, "podcasts_summary", body = query_req)
+  Search(con, "podcasts", body = query_req)
 }
   
 res <- get_search(2)

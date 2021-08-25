@@ -1,4 +1,4 @@
-library(parallel)
+# library(parallel)
 library(magrittr)
 library(elastic)
 library(jsonlite)
@@ -9,8 +9,11 @@ library(dplyr)
 # ES setup ----------------------------------------------------------------
 x <- connect()
 schema <- jsonlite::read_json('schema_transcript.json')
-if (index_exists(x, 'podcasts_transcript')) index_delete(x, 'podcasts_transcript')
-index_create(x, 'podcasts_transcript', body = schema)
+if (index_exists(x, 'podcasts')) index_delete(x, 'podcasts')
+index_create(x, 'podcasts', body = schema)
+
+meta <- read_tsv('data/metadata.tsv', col_types = cols()) %>%
+  select(-show_uri, -language, -rss_link, -episode_uri)
 
 
 # File read in ------------------------------------------------------------
@@ -47,10 +50,12 @@ upload_episode <- function (show, con = x) {
            across(.cols = matches("Time"), ~as.numeric(gsub("s", "", .))),
            minute_chunk = startTime %/% 60) %>% 
     group_by(show, episode, minute_chunk) %>% 
-    summarise(startTime = min(startTime),
+    summarise(startTime = (min(startTime) %/% 60) * 60,
               endTime = max(endTime),
               text = paste(word, collapse = " "),
-              .groups = "drop")
+              .groups = "drop") %>% 
+    inner_join(meta, by = c("show" = "show_filename_prefix",
+                            "episode" = "episode_filename_prefix"))
   
   big_dat %<>%
     mutate(id1 = rep(1:(nrow(big_dat)/2), each = 2, length.out = nrow(big_dat)),
@@ -59,7 +64,7 @@ upload_episode <- function (show, con = x) {
   # Chunk into 2 minute sections --------------------------------------------
   
   big_dat1 <- big_dat %>% 
-    group_by(show, episode, id1) %>% 
+    group_by(show, episode, show_name, show_description, episode_name, episode_description, id1) %>% 
     summarise(startTime = min(startTime),
               endTime = max(endTime),
               text = paste(text, collapse = " "),
@@ -67,11 +72,11 @@ upload_episode <- function (show, con = x) {
     ungroup() %>% 
     select(-id1)
   
-  out <- docs_bulk(con, big_dat1, 'podcasts_transcript', quiet = T, chunk_size = 1e4)
+  out <- docs_bulk(con, big_dat1, 'podcasts', quiet = T, chunk_size = 1e4)
   rm(big_dat1, out)
   
   big_dat2 <- big_dat %>% 
-    group_by(show, episode, id2) %>% 
+    group_by(show, episode, show_name, show_description, episode_name, episode_description, id2) %>% 
     summarise(startTime = min(startTime),
               endTime = max(endTime),
               text = paste(text, collapse = " "),
@@ -79,7 +84,7 @@ upload_episode <- function (show, con = x) {
     ungroup() %>% 
     select(-id2)
   
-  out <- docs_bulk(con, big_dat2, 'podcasts_transcript', quiet = T, chunk_size = 1e4)
+  out <- docs_bulk(con, big_dat2, 'podcasts', quiet = T, chunk_size = 1e4)
 }
 
 system.time(

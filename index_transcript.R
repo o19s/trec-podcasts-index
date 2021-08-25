@@ -2,9 +2,7 @@
 library(magrittr)
 library(elastic)
 library(jsonlite)
-library(forcats)
-library(purrr)
-library(dplyr)
+library(tidyverse)
 
 # ES setup ----------------------------------------------------------------
 x <- connect()

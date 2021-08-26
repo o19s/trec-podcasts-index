@@ -7,5 +7,10 @@ bind_rows(
              sep = " ")
 ) %>% 
   setNames(c("topic", "drop", "id", "grade")) %>% 
-  select(-drop) %>% 
+  select(-drop) -> qrels
+
+
+  
+qrels %>% 
+  filter(!topic %in% c(47, 50)) %>% 
   write.csv("data/qrels.csv", row.names = F)

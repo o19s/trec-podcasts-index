@@ -1,18 +1,12 @@
 source("eval/eval.R") # brings in some Data and Functions
 
 library(elastic)
-library(tidyverse)
+suppressPackageStartupMessages(library(tidyverse, warn.conflicts = FALSE))
 
 con <- connect()
 
-# res <- topics$query[topic_num] %>% 
-#   Search(con, "podcasts", q = .)
-
-
 # Some more functions -----------------------------------------------------
 # TODO: move elsewhere
-
-get_query(2)
 
 # this is where to write new DSL
 get_search <- function(topic, ...) {
@@ -22,46 +16,49 @@ get_search <- function(topic, ...) {
   query_req <- list(
     "size" = 50,
     "_source" = list(
-      "episode_filename_prefix",
+      "episode",
+      "startTime",
       "episode_name",
-      "episode_description"
+      "episode_description",
+      "text"
     ),
     "query" = list(
       "combined_fields" = list(
-        "fields" = list("episode_description", "episode_name"),
+        "fields" = list("episode_description", "episode_name", "text^2"),
         "query" = query,
-        "minimum_should_match" = "50%"
+        "minimum_should_match" = "100%"
       )
     )
   )
   
-  Search(con, "podcasts", body = query_req)
+  x <- Search(con, "podcasts", body = query_req)
+  x[['topic']] = topic
+  x
 }
-  
-res <- get_search(2)
-res
 
-get_ids <- function(res, topic) {
+get_ids <- function(res) {
+  topic <- res[['topic']]
+  
   if (res[['hits']][['total']] == 0) {
-    stop("No results from Elastic!!!")
+    warning("No results from Elastic!!!")
+    data.frame(topic = topic, id = NA, id = NA, result = F)
   } else {
     res[['hits']][['hits']] %>% 
-      map_chr(~ .[['_source']][['episode_filename_prefix']]) %>% 
-      paste0("spotify:episode:", .) %>% # this needs to really match down to the segment level
+      map_chr(~ paste0(.[['_source']][['episode']], "_", .[['_source']][['startTime']])) %>% 
+      paste0("spotify:episode:", ., ".0") %>%
       data.frame(topic = topic, id = ., result = T)
   }
 }
 
-ids <- get_ids(res, 2)
-ids
-
-score_ids <- function(ids, topic) {
+score_ids <- function(ids) {
+  
+  topic <- unique(ids$topic)
   
   topic_qrels <- qrels %>% 
     filter(topic %in% unique(ids$topic)) %>% 
-    mutate(id = gsub("_.*", "", id)) %>% 
-    group_by(topic, id) %>% 
-    summarise(grade = max(grade), .groups = 'drop') %>% 
+    # mutate(id = gsub("_.*", "", id)) %>% 
+    # group_by(topic, id) %>% 
+    # summarise(grade = max(grade), .groups = 'drop') %>% 
     arrange(desc(grade))
   
   ids %>% 
@@ -72,32 +69,18 @@ score_ids <- function(ids, topic) {
     ndcg()
 }
 
-
-# Wrangle sandbox ---------------------------------------------------------
-
-# exploring scoring and our baseline ranking
-topic_num <- 2
-get_query(topic_num)
-ids <- get_search(topic_num) %>% 
-  get_ids(topic_num)
-
-ids %>% score_ids(topic_num)
-ids
+# All topics --------------------------------------------------------------
 
 scores <- list()
 for (t in unique(qrels$topic)) {
   scores[[t]] <- get_search(t) %>% 
-    get_ids(t) %>% 
+    get_ids() %>% 
     score_ids() %>% 
     data.frame(topic = t, score = .)
 }
 
-# figure out why some scores are NULL and being dropped
-null_topics <- scores %>% map_lgl(is.null) %>% which()
-scores = scores[-null_topics]
-
 dat_scores <- bind_rows(scores) %>% 
-  inner_join(topics)
+  inner_join(topics, by = "topic")
 
 library(ggbeeswarm)
 p <- ggplot(data = dat_scores, aes(x = "1", y =score, color = type, label = topic, query = query, group = 1)) +
@@ -105,4 +88,8 @@ p <- ggplot(data = dat_scores, aes(x = "1", y =score, color = type, label = topi
   stat_summary(geom = "crossbar", fun.data = mean_cl_boot, aes(color="Average")) +
   labs(x = "All topics", y = "nDCG@10", title = "no MM")
 
-plotly::ggplotly(p)
+# plotly::ggplotly(p)
+
+print(paste("Average nDCG@10:", round(mean(dat_scores$score, na.rm = T), 3)))
+
+      

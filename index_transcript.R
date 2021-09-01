@@ -6,9 +6,9 @@ library(tidyverse)
 
 # ES setup ----------------------------------------------------------------
 x <- connect()
-schema <- jsonlite::read_json('schema_transcript.json')
-if (index_exists(x, 'podcasts')) index_delete(x, 'podcasts')
-index_create(x, 'podcasts', body = schema)
+# schema <- jsonlite::read_json('schema_transcript.json')
+# if (index_exists(x, 'podcasts')) index_delete(x, 'podcasts')
+# index_create(x, 'podcasts', body = schema)
 
 meta <- read_tsv('data/metadata.tsv', col_types = cols()) %>%
   select(-show_uri, -language, -rss_link, -episode_uri)
@@ -20,6 +20,9 @@ all_dirs <- map(shards, ~dir(.x, full.names = T)) %>% unlist()
 all_shows <- map(all_dirs, ~dir(.x, full.names = T)) %>% unlist()
 
 # ptm <- proc.time()
+
+show <- sample(all_shows, size = 1)
+show <- 'data/transcripts/0/H/show_0H5UiFLZuyCtpnfchdYOvF'
 
 upload_episode <- function (show, con = x) {
 
@@ -58,8 +61,8 @@ upload_episode <- function (show, con = x) {
   
   big_dat %<>%
     group_by(episode) %>% 
-    mutate(id1 = minute_chunk %/% 2,
-           id2 = c(0,rep(1:(n()/2), each = 2, length.out = n()-1))) %>% 
+    mutate(id1 = startTime %/% 120,
+           id2 = (startTime - 60) %/% 120) %>% 
     ungroup()
   
   # Chunk into 2 minute sections --------------------------------------------
@@ -77,7 +80,7 @@ upload_episode <- function (show, con = x) {
   rm(big_dat1, out)
   
   big_dat2 <- big_dat %>% 
-    filter(id2 != 0) %>% 
+    filter(id2 != -1) %>% 
     group_by(show, episode, show_name, show_description, episode_name, episode_description, id2) %>% 
     summarise(startTime = min(startTime),
               endTime = max(endTime),

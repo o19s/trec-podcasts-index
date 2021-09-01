@@ -17,18 +17,50 @@ OSC - 2021
 '''
 
 todo_pile = queue.Queue(maxsize=32)
+to_index = queue.Queue(maxsize=8)
+
 ES_TARGET = 'http://localhost:9200/podcasts'
 
+still_running = True
+
 def process():
-    while True:
+    while still_running:
         try:
             todo = todo_pile.get(timeout=180)
-        except:
+        except queue.Empty:
             print('Worker thread timed out')
             break
 
         segments = chunker.chunkit(todo['episode'], todo['ep_meta'])
-        index(segments)
+        to_index.put(segments)
+
+        todo_pile.task_done()
+
+def indexer():
+    TASK_FLUSH = 1
+
+    batch = []
+    tasks = 0
+    while still_running:
+        try:
+            batch += to_index.get(timeout=5)
+            tasks += 1
+
+            if tasks > TASK_FLUSH:
+                index(batch)
+                for i in range(tasks):
+                    to_index.task_done()
+                tasks = 0
+
+        except queue.Empty:
+            print('Indexer timed out!')
+            if tasks > 0:
+                index(batch)
+                for i in range(tasks):
+                    to_index.task_done()
+
+            break
+
 
 def index(docs):
     bulk_req = ''
@@ -46,6 +78,8 @@ def index(docs):
         bulk_req += '\n'
 
         requests.post('http://localhost:9200/_bulk', data=bulk_req, headers={'Content-Type': 'application/x-ndjson'})
+
+    docs.clear()
 
 
 with open('schema_transcript.json') as src:
@@ -83,9 +117,13 @@ motherload = list(Path('data/transcripts').rglob('*.json'))
 
 print('Setting up the worker pool')
 
-THREAD_WORKERS = 8
+THREAD_WORKERS = 1
 for i in range(THREAD_WORKERS):
     thread.start_new_thread(process, ())
+
+INDEX_WORKERS = 8
+for i in range(INDEX_WORKERS):
+    thread.start_new_thread(indexer, ())
 
 for item in tqdm(motherload):
     filename = item.name.split('.')[0]
@@ -96,8 +134,12 @@ for item in tqdm(motherload):
     ep_meta = metadata[filename]
     todo_pile.put({'episode': episode, 'ep_meta': ep_meta})
 
-while not todo_pile.empty():
-    print('Still working on the last bits...')
-    sleep(10)
+
+todo_pile.join()
+to_index.join()
+
+still_running = False
+time.sleep(1)
 
 print('All done')
+

@@ -1,7 +1,11 @@
 
 def chunkit(tx, meta):
+    return get_chunks(0, tx, meta) + get_chunks(60, tx, meta)
+
+def get_chunks(offset, tx, meta):
     batch = []
 
+    offset_cleared = False
     curr_window = 1
     WINDOW_SIZE = 120
     tokens = []
@@ -16,7 +20,12 @@ def chunkit(tx, meta):
                 continue
 
             for word in alt['words']:
-                if float(word['startTime'][0:-1]) < (curr_window * WINDOW_SIZE):
+                # Skip until we hit the offset
+                if float(word['startTime'][0:-1]) < offset and not offset_cleared:
+                    continue
+
+                if float(word['startTime'][0:-1]) < ((curr_window * WINDOW_SIZE) + offset):
+                    offset_cleared = True
                     tokens.append(word['word'])
 
                 else:
@@ -28,8 +37,8 @@ def chunkit(tx, meta):
                         'show_name': meta['show_name'],
                         'show_filename_prefix': meta['show_filename_prefix'],
                         'text': ' '.join(tokens),
-                        'startTime': (curr_window - 1) * WINDOW_SIZE,
-                        'endTime': curr_window * WINDOW_SIZE
+                        'startTime': (((curr_window - 1) * WINDOW_SIZE) + offset),
+                        'endTime': (curr_window * WINDOW_SIZE) + offset
                     })
 
                     tokens = []
@@ -37,3 +46,5 @@ def chunkit(tx, meta):
                     curr_window += 1
 
     return batch
+
+

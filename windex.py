@@ -1,7 +1,8 @@
-import concurrent.futures
 import csv
 import json
 import requests
+import _thread as thread, queue, time
+import time
 
 from idx import chunker
 from pathlib import Path
@@ -15,11 +16,19 @@ OSC - 2021
 
 '''
 
+todo_pile = queue.Queue(maxsize=32)
 ES_TARGET = 'http://localhost:9200/podcasts'
 
-def process(episode, ep_meta):
-    segments = chunker.chunkit(episode, ep_meta)
-    index(segments)
+def process():
+    while True:
+        try:
+            todo = todo_pile.get(timeout=180)
+        except:
+            print('Worker thread timed out')
+            break
+
+        segments = chunker.chunkit(todo['episode'], todo['ep_meta'])
+        index(segments)
 
 def index(docs):
     bulk_req = ''
@@ -74,16 +83,21 @@ motherload = list(Path('data/transcripts').rglob('*.json'))
 
 print('Setting up the worker pool')
 
-WORKERS = 8
-with concurrent.futures.ThreadPoolExecutor(max_workers=8) as exe:
-    for item in tqdm(motherload):
-        filename = item.name.split('.')[0]
+THREAD_WORKERS = 8
+for i in range(THREAD_WORKERS):
+    thread.start_new_thread(process, ())
 
-        with open(item) as src:
-            episode = json.load(src)
+for item in tqdm(motherload):
+    filename = item.name.split('.')[0]
 
-        ep_meta = metadata[filename]
+    with open(item) as src:
+        episode = json.load(src)
 
-        exe.submit(process, episode, ep_meta)
+    ep_meta = metadata[filename]
+    todo_pile.put({'episode': episode, 'ep_meta': ep_meta})
+
+while not todo_pile.empty():
+    print('Still working on the last bits...')
+    sleep(10)
 
 print('All done')

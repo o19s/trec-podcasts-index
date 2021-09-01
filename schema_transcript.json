@@ -52,6 +52,10 @@
         }
     },
     "settings": {
+      "index": {
+        "refresh_interval": -1,
+        "number_of_replicas": 0
+      },
       "analysis": {
       "analyzer": {
         "trec": {

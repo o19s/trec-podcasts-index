@@ -90,6 +90,8 @@ p <- ggplot(data = dat_scores, aes(x = "1", y =score, color = type, label = topi
 
 # plotly::ggplotly(p)
 
+p
+
 print(paste("Average nDCG@10:", round(mean(dat_scores$score, na.rm = T), 3)))
 
       

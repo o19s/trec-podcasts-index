@@ -53,11 +53,14 @@ upload_episode <- function (show, con = x) {
               text = paste(word, collapse = " "),
               .groups = "drop") %>% 
     inner_join(meta, by = c("show" = "show_filename_prefix",
-                            "episode" = "episode_filename_prefix"))
+                            "episode" = "episode_filename_prefix")) %>%
+    arrange(startTime)
   
   big_dat %<>%
-    mutate(id1 = rep(1:(nrow(big_dat)/2), each = 2, length.out = nrow(big_dat)),
-           id2 = c(0,rep(1:(nrow(big_dat)/2), each = 2, length.out = nrow(big_dat)-1)))
+    group_by(episode) %>% 
+    mutate(id1 = minute_chunk %/% 2,
+           id2 = c(0,rep(1:(n()/2), each = 2, length.out = n()-1))) %>% 
+    ungroup()
   
   # Chunk into 2 minute sections --------------------------------------------
   
@@ -67,19 +70,20 @@ upload_episode <- function (show, con = x) {
               endTime = max(endTime),
               text = paste(text, collapse = " "),
               .groups = "drop") %>% 
-    ungroup() %>% 
+    ungroup() %>%
     select(-id1)
   
   out <- docs_bulk(con, big_dat1, 'podcasts', quiet = T, chunk_size = 1e4)
   rm(big_dat1, out)
   
   big_dat2 <- big_dat %>% 
+    filter(id2 != 0) %>% 
     group_by(show, episode, show_name, show_description, episode_name, episode_description, id2) %>% 
     summarise(startTime = min(startTime),
               endTime = max(endTime),
               text = paste(text, collapse = " "),
               .groups = "drop") %>% 
-    ungroup() %>% 
+    ungroup() %>%
     select(-id2)
   
   out <- docs_bulk(con, big_dat2, 'podcasts', quiet = T, chunk_size = 1e4)

@@ -3,3 +3,5 @@ data/*sv
 data/.DS_Store
 data/*.xml
 .Rproj.user
+*.pycache
+venv/*

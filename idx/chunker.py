@@ -47,7 +47,10 @@ def get_chunks(offset, tx, meta):
 
     # Leftover if the offset cleared
     if len(tokens) > 0:
+            start_time = ((curr_window - 1) * WINDOW_SIZE) + offset
+
             batch.append({
+                'lookup': '{}_{:g}'.format(meta['episode_filename_prefix'], start_time),
                 'episode_description': meta['episode_description'],
                 'episode_filename_prefix': meta['episode_filename_prefix'],
                 'episode_name': meta['episode_name'],
@@ -55,7 +58,7 @@ def get_chunks(offset, tx, meta):
                 'show_name': meta['show_name'],
                 'show_filename_prefix': meta['show_filename_prefix'],
                 'text': ' '.join(tokens),
-                'startTime': (((curr_window - 1) * WINDOW_SIZE) + offset),
+                'startTime': start_time,
                 'endTime': (curr_window * WINDOW_SIZE) + offset
             })
 

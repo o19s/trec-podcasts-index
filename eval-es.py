@@ -7,6 +7,7 @@ import time
 import torch
 
 from scipy import spatial
+from tabulate import tabulate
 from tqdm import tqdm
 from sentence_transformers import SentenceTransformer
 
@@ -136,7 +137,7 @@ def execute_query(query):
     # Experimental boost by angle if in top N
     ANGLE_N = 10
     TEXT_BOOST_BASE = 1000
-    DESC_BOOST_BASE = 1
+    DESC_BOOST_BASE = 0
 
     to_boost_desc = {}
     to_boost_text = {}
@@ -161,7 +162,7 @@ def execute_query(query):
     resp = requests.post('http://localhost:9200/podcasts/_search', json=es_query).json()
     for hit in resp['hits']['hits']:
         doc = hit['_source']
-        top_docs.append({'id': hit['_id'], 'score': hit['_score']})
+        top_docs.append({'id': doc['lookup'], 'score': hit['_score']})
 
     # Boost and resort
     for idx, doc in enumerate(top_docs):
@@ -194,19 +195,18 @@ with open('data/2020_queries.json') as src:
 for query in queries['queries']:
     summary.append(execute_query(query))
 
+tab_data = []
 scores = []
+
 for result in summary:
     scores.append(result['score'])
-    print('Results for query: {}'.format(result['query']))
-    print('NDCG: {}'.format(result['score']))
-    print()
+    tab_data.append([result['query'], result['score']])
 
-    '''
-    for doc in result['docs']:
-        print(get_meta(doc))
 
-    print()
-    '''
+print(tabulate(tab_data))
+
+
+
 
 print('Overall nDCG performance: {}'.format(statistics.mean(scores)))
 

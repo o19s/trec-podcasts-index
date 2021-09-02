@@ -4,7 +4,6 @@ def chunkit(tx, meta):
 def get_chunks(offset, tx, meta):
     batch = []
 
-    offset_cleared = False
     curr_window = 1
     WINDOW_SIZE = 120
     tokens = []
@@ -19,8 +18,8 @@ def get_chunks(offset, tx, meta):
                 continue
 
             for word in alt['words']:
-                # Skip until we hit the offset
-                if float(word['startTime'][0:-1]) < offset and not offset_cleared:
+                # Some results have the same tokens we need to toss them out until we get something new
+                if float(word['startTime'][0:-1]) < (((curr_window - 1) * WINDOW_SIZE) + offset):
                     continue
 
                 if float(word['startTime'][0:-1]) < ((curr_window * WINDOW_SIZE) + offset):

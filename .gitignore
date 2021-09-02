@@ -5,3 +5,4 @@ data/*.xml
 .Rproj.user
 *.pycache
 venv/*
+*/__pycache__/*

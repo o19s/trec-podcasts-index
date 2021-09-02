@@ -30,9 +30,9 @@ def get_chunks(offset, tx, meta):
                     start_time = ((curr_window - 1) * WINDOW_SIZE) + offset
 
                     batch.append({
-                        'lookup': '{}_{:g}'.format(meta['episode_filename_prefix'], start_time),
+                        'lookup': 'spotify:episode:{}_{:g}.0'.format(meta['episode_filename_prefix'], start_time),
                         'episode_description': meta['episode_description'],
-                        'episode_filename_prefix': meta['episode_filename_prefix'],
+                        'episode': meta['episode_filename_prefix'],
                         'episode_name': meta['episode_name'],
                         'show_description': meta['show_description'],
                         'show_name': meta['show_name'],
@@ -50,9 +50,9 @@ def get_chunks(offset, tx, meta):
             start_time = ((curr_window - 1) * WINDOW_SIZE) + offset
 
             batch.append({
-                'lookup': '{}_{:g}'.format(meta['episode_filename_prefix'], start_time),
+                'lookup': 'spotify:episode:{}_{:g}.0'.format(meta['episode_filename_prefix'], start_time),
                 'episode_description': meta['episode_description'],
-                'episode_filename_prefix': meta['episode_filename_prefix'],
+                'episode': meta['episode_filename_prefix'],
                 'episode_name': meta['episode_name'],
                 'show_description': meta['show_description'],
                 'show_name': meta['show_name'],

@@ -17,7 +17,7 @@ OSC - 2021
 '''
 
 todo_pile = queue.Queue(maxsize=32)
-to_index = queue.Queue(maxsize=4)
+to_index = queue.Queue(maxsize=64)
 
 ES_TARGET = 'http://localhost:9200/podcasts'
 
@@ -37,7 +37,7 @@ def process():
         todo_pile.task_done()
 
 def indexer():
-    TASK_FLUSH = 0 # 0 flushes as it comes in
+    TASK_FLUSH = 10
 
     batch = []
     tasks = 0
@@ -69,7 +69,7 @@ def index(docs):
         bulk_req += json.dumps({
             'index': {
                 '_index': 'podcasts',
-                '_id': '{}_{}'.format(doc['episode_filename_prefix'], doc['startTime'])
+                #'_id': '{}_{}'.format(doc['episode_filename_prefix'], doc['startTime'])
             }
         })
         bulk_req += '\n'
@@ -77,8 +77,7 @@ def index(docs):
         bulk_req += json.dumps(doc)
         bulk_req += '\n'
 
-        requests.post('http://localhost:9200/_bulk?refresh=false', data=bulk_req, headers={'Content-Type': 'application/x-ndjson'})
-
+    requests.post('http://localhost:9200/_bulk?refresh=false', data=bulk_req, headers={'Content-Type': 'application/x-ndjson'})
     docs.clear()
 
 

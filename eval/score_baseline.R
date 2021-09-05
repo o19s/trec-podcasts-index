@@ -12,26 +12,22 @@ query_template <- function(string) {
   list(
     "combined_fields" = list(
       "fields" = list(
-        "episode_description",
         "episode_name",
-        "text^3.5"),
-      "query" = string,
-      "minimum_should_match" = "100%"))
+        "show_name",
+        "text^3"
+        ),
+      "query" = string))
 }
 
 # query_template and con must be set before
 source("eval/eval.R")
-
-# another way home for ID based rescore-ing
-get_search(11, con) %>% 
-  get_ids()
 
 
 # Score it ----------------------------------------------------------------
 
 scores <- score_all(qrels, topics, con)
 
-scores %>% crossbar_plot()
+scores %>% crossbar_plot(title = "baseline")
 
-scores %>% with(mean(score))
+scores %>% with(mean(ndcg))
 

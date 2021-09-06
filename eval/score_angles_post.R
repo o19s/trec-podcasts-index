@@ -22,9 +22,8 @@ query_template <- function(string) {
 source("eval/eval.R")
 
 # another way home for ID based rescore-ing
-tokens <- get_search(24, con) %>% 
+tokens <- get_search(29, con) %>% 
   get_ids()
-
 
 vector_rescore <- function(tokens) {
   vector_hits <-  glue::glue("embedding/cache/angles-{unique(tokens$topic)}.json") %>% 
@@ -34,12 +33,13 @@ vector_rescore <- function(tokens) {
     id = map_chr(vector_hits, ~ .$id) %>% paste0("spotify:episode:", ., ".0"),
     vector_score = map_dbl(vector_hits, ~ .$similarity)
   ) %>% 
-    left_join(tokens, .) %>% 
+    left_join(tokens, ., by = "id") %>% 
     replace_na(list(vector_score = 0)) %>% 
     mutate(score = es_score + vector_score) %>% 
-    arrange(desc(score)) %>% 
-    score_ids()
-  
+    arrange(desc(score))
+  # %>%
+  # score_ids()
+  # 
   return(score)
 }
 
@@ -58,29 +58,78 @@ for (t in unique(qrels$topic)) {
     get_ids() %>%
     vector_rescore() %>% 
     data.frame(topic = t, ndcg = .)
-  
 }
 
+
+### Submissions ---
+
+vector_subs <- list()
+for (t in unique(tests$topic)) {
+
+  vector_subs[[as.character(t)]] <- get_search(t, con) %>% 
+    get_ids() %>% 
+    vector_rescore() %>% 
+    mutate(final = score)
+}
+
+map_df(vector_subs, function(x) {
+  y <-  x %>% 
+    slice(1:nrow(x)) %>% 
+    mutate(QTYPE = "QR",
+           RANK = 1:nrow(x),
+           RUNID = "osc_tok_vec") %>% 
+    group_by(id) %>% 
+    slice(1) %>% 
+    ungroup() 
+  
+  # check if query is topical or not
+  topical <- inner_join(tests, y) %>% 
+    filter(type == "topical")
+  
+  if (nrow(topical) < 1) {
+    z <- y
+  } else {
+    z <- bind_rows(
+      y,
+      mutate(y, QTYPE = "QE"),
+      mutate(y, QTYPE = "QD"),
+      mutate(y, QTYPE = "QS")
+    ) 
+  }
+  
+  z %>% 
+    select(TOPICID = topic,
+           QTYPE,
+           EPISODEID_OFFSET = id,
+           RANK,
+           SCORE = final,
+           RUNID)
+}) %>% 
+  write_tsv("submission/osc_tok_vec.tsv", col_names = F)
 
 es_scores %<>% bind_rows() %>% rename(ndcg_es = ndcg)
 vector_scores %<>% bind_rows() %>% rename(ndcg_vec = ndcg)
   
-inner_join(es_scores, vector_scores)
-
-# mutate(ndcg = ndcg / max(ndcg)) %>% 
-  inner_join(topics, by = "topic") %>% 
-  select(-description)
-
-
-token_hits %>% 
-  mutate(doc_score = doc_score / max(doc_score))
+dat <- inner_join(es_scores, vector_scores) %>% 
+  inner_join(topics) %>% 
+  select(-description) %>% 
+  arrange(desc(ndcg_es)) %>% 
+  mutate(topic = fct_inorder(as.character(topic)))
 
 
-# Score it ----------------------------------------------------------------
+avg_lines <- dat %>%
+  group_by(type) %>% 
+  summarise(avg_vec = mean(ndcg_vec),
+            avg_es = mean(ndcg_es)) %>% 
+  gather("key", "value", -type)
+  
+p_post <- ggplot(dat, aes(y = topic)) +
+  geom_point(aes(x = ndcg_es, color = "ES base")) +
+  geom_point(aes(x = ndcg_vec, color = "Sbert rescore")) +
+  geom_vline(data = avg_lines, aes(xintercept = value, color = key))+
+  facet_grid(type ~ ., scales = "free_y", space = "free_y")
 
-scores <- score_all(qrels, topics, con)
+mean(dat$ndcg_es)
+mean(dat$ndcg_vec)
 
-scores %>% crossbar_plot()
-
-scores %>% with(mean(score))
 

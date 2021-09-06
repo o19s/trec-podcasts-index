@@ -2,10 +2,13 @@ library(elastic)
 suppressPackageStartupMessages(library(tidyverse, warn.conflicts = FALSE))
 
 topics <- read.csv("data/topics.csv")
+tests <- read.csv("data/test.csv")
 
 # pull out the query string by topic ID (1-58 are available)
-get_query <- function(topic) {
-  topics[topics$topic == topic, 'query']
+get_query <- function(top) {
+  bind_rows(topics,tests) %>% 
+    filter(topic == top) %>% 
+    pull(query)
 }
 
 qrels <- read.csv("data/qrels.csv")
@@ -44,6 +47,23 @@ get_search <- function(topic, con, ...) {
   
   query_string <- get_query(topic)
   body_scaffold[['query']] = query_template(query_string)
+  
+  x <- Search(con, "podcasts", body = body_scaffold)
+  x[['topic']] = topic
+  x
+}
+
+get_search_filtered <- function(topic, con, ids, ...) {
+  body_scaffold <- list(
+    "size" = 100,
+    "_source" = list(
+      "text",
+      "lookup",
+      "episode",
+      "startTime"))
+  
+  query_string <- get_query(topic)
+  body_scaffold[['query']] = query_template(query_string, ids)
   
   x <- Search(con, "podcasts", body = body_scaffold)
   x[['topic']] = topic

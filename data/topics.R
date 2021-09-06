@@ -15,3 +15,8 @@ read_in <- function(x) {
 map_df(topics, read_in) %>% 
   rename(topic = num) %>% 
   write.csv(file = "data/topics.csv", row.names = F)
+
+
+map_df("data/podcasts_2021_topics_test.xml", read_in) %>% 
+  rename(topic = num) %>% 
+  write.csv(file = "data/test.csv", row.names = F)
